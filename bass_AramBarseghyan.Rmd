@@ -1,0 +1,80 @@
+---
+title: "Marketing Analytics
+Homework: Bass Model
+Aram Barseghyan"
+output: pdf_document
+date: "2024-02-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(DIMORA)
+library(ggplot2)
+library(gridExtra)
+```
+
+From the Time magazine highlighted 100 best innovations of year 2023, I have chosen Sony Alpha 7R V with it's Smarter Auto-focus feature. This product is basically another example of AI integration. However, unlike other cameras here the auto focus not only works on objects, it can easily detect the moving object and keep focus on it. The Sony Alpha 7R V is capable of doing all this in a very fast manner.
+
+For the look-alike analysis I have taken from Statista website a time series data from 2006 to 2020 year for the digital reflex system cameras sales volume in Germany. SLR stands for Single Lens Reflex. SLR cameras use a mirror mechanism to reflect light from the lens into an optical viewfinder, allowing the photographer to see exactly what will be captured through the lens. When the shutter button is pressed, the mirror flips up, and the shutter opens to expose the image sensor or film to light, capturing the image. SLR cameras are known for their interchangeable lenses, manual controls, and optical viewfinders, offering versatility and control for photographers.
+
+In the sense of auto focus one may wonder how are these two products are interconnected, however during some research I have found out that SLR cameras were not using any good auto focus techniques. And they did not even use any AI. So we will look at these products as just cameras, one of which has good AI powered auto focus. They both serve the same function and have almost the same design. People who are buying cameras are mainly the same people, however with some differences. We can assume that the market has changed, but innovation and imitation rates must be the same. This might be because of the fast developing sphere of photo taking tools. We may accept that our innovation will decrease in it's sales as SLR cameras did in the past. All this we are going to observe in the upcoming research.
+
+We will first look at our data of SLR cameras sold in Germany, which is represented in unit of products sold. Where 1 unit = 1000 sold products.
+
+```{r include=FALSE}
+sales <- read_excel('sales.xlsx')
+head(sales)
+```
+```{r echo=FALSE}
+sales$cum_sales = cumsum(sales$Sales)
+head(sales)
+```
+After looking at our data, we can move on and apply Bass model on it, we will first, see cumulative and instantaneous predictions of bass model for our time series. Cumulative = F(t) , Instantaneous = f(t)
+```{r echo=FALSE}
+output <- BM(sales$Sales)
+```
+We can observe that the prediction on the model is quite well performed on the sales data (visually). Also worth to mention that in f(t) graph we can clearly see how adoption rate for the SLR cameras is declining during time. Smartphones and better camera technologies must be reason for this.
+
+Then we will look at estimation values of p, q and m where p = innovation rate, q = imitation rate and m = market potential
+```{r echo=FALSE}
+output$Estimate
+```
+After examining the estimations provided by the Bass model, we can say that we have done a good job, because the coefficients are all significant with p-values almost equal to 0.
+
+For our Innovation we will take the same p and q, however I personally think that the market potential has changed. So we need to somehow estimate the present market potential for cameras, in order to get realistic numbers of adopters at time t. We will estimate again for Germany as our SLR camera. We saw something like 10000 for market potential of SLR cameras. So, if I take into consideration the fact that the number of camera enthusiasts lowered and new technologies such as very good cameraphones have been introduced to the market, we would probably at least half this market potential value. So if we take 5000 which is 5 million in our case as we had data where 1unit = 1000, we can allocate 5 million products in the camera market, but also let's remember that out product is just Sony's one camera. So, let's take just the 5% of the market, so it will be 250unit = 250000 products for our case.
+```{r echo=FALSE}
+bass.f <- function(t,p,q){((p+q)^2/p)*exp(-(p+q)*t)/(1+(q/p)*exp(-(p+q)*t))^2}
+bass.F <- function(t,p,q){(1-exp(-(p+q)*t))/(1+(q/p)*exp(-(p+q)*t))}
+
+p <- output$Estimate[2,1]
+q <- output$Estimate[3,1]
+m <- 250
+
+# Plot the functions
+df <- data.frame(t = seq(0, 10, by = 1))
+
+df$bass_f <- bass.f(df$t, p, q)
+df$bass_F <- bass.F(df$t, p, q)
+
+# Plot with ggplot
+plot_bass_f <- ggplot(df, aes(x = t, y = m*bass_f)) +
+  geom_line(color = "blue") +
+  labs(x = "Time", y = "N adopters", title = "Number of Adopters at time t") +
+  theme_minimal()
+
+plot_bass_F <- ggplot(df, aes(x = t, y = m*bass_F)) +
+  geom_line(color = "red") +
+  labs(x = "Time", y = "N adopters", title = "Number of adopters from the start of time t") +
+  theme_minimal()
+
+# Arrange the plots side by side
+grid.arrange(plot_bass_f, plot_bass_F, ncol = 2)
+```
+Now we can see our a(t) and A(t) for our new product with it's change market potential.
+
+Resources used:
+For innovation: https://time.com/collection/best-inventions-2023/6324008/sony-alpha-7r-v/
+
+For data: https://www.statista.com/statistics/771786/digital-reflex-system-cameras-sales-volume-germany/
+
